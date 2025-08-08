@@ -3,13 +3,14 @@ import AdminJSExpress from '@adminjs/express';
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { Database, Resource, getModelByName } from '@adminjs/prisma';
+import { DEFAULT_ADMIN } from './admin/constants.js';
 
 const prisma = new PrismaClient();
 
 // 註冊 Prisma adapter
 AdminJS.registerAdapter({ Database, Resource });
 
-const PORT = 3000;
+const PORT = Number(process.env.PORT ?? 3000);
 
 const start = async () => {
   const app = express();
@@ -21,16 +22,22 @@ const start = async () => {
         options: {
           properties: {
             id: {
-              isVisible: { list: true, show: true, edit: false, filter: true },
+              isVisible: {
+                list: true, show: true, edit: false, filter: true,
+              },
             },
             email: {
               type: 'string',
               isRequired: true,
-              isVisible: { list: true, show: true, edit: true, filter: true },
+              isVisible: {
+                list: true, show: true, edit: true, filter: true,
+              },
             },
             name: {
               type: 'string',
-              isVisible: { list: true, show: true, edit: true, filter: true },
+              isVisible: {
+                list: true, show: true, edit: true, filter: true,
+              },
             },
             role: {
               availableValues: [
@@ -40,10 +47,14 @@ const start = async () => {
               ],
             },
             createdAt: {
-              isVisible: { list: true, show: true, edit: false, filter: true },
+              isVisible: {
+                list: true, show: true, edit: false, filter: true,
+              },
             },
             updatedAt: {
-              isVisible: { list: false, show: true, edit: false, filter: false },
+              isVisible: {
+                list: false, show: true, edit: false, filter: false,
+              },
             },
           },
         },
@@ -100,17 +111,30 @@ const start = async () => {
     adminJS.watch();
   }
 
-  // 簡單的認證（生產環境請使用更安全的方式）
+  // Basic auth using env-configured admin credentials (replace with DB auth in production)
+  const isProduction = process.env.NODE_ENV === 'production';
+  const configuredAdminEmail = process.env.ADMIN_EMAIL ?? DEFAULT_ADMIN.email;
+  const configuredAdminPassword = process.env.ADMIN_PASSWORD ?? DEFAULT_ADMIN.password;
+
+  const cookieSecret = process.env.COOKIE_SECRET;
+  if (isProduction) {
+    if (!cookieSecret || cookieSecret.trim().length < 12) {
+      throw new Error('COOKIE_SECRET is required in production and must be at least 12 characters.');
+    }
+    if (!configuredAdminEmail || !configuredAdminPassword) {
+      throw new Error('ADMIN_EMAIL and ADMIN_PASSWORD are required in production.');
+    }
+  }
+
   const adminRouter = AdminJSExpress.buildAuthenticatedRouter(adminJS, {
     authenticate: async (email, password) => {
-      // 這裡是簡單的硬編碼認證，實際應該查詢資料庫
-      if (email === 'admin@example.com' && password === 'password') {
-        return { email: 'admin@example.com', role: 'admin' };
+      if (email === configuredAdminEmail && password === configuredAdminPassword) {
+        return { email: configuredAdminEmail, role: 'admin' } as const;
       }
       return null;
     },
     cookieName: 'adminjs',
-    cookiePassword: 'sessionsecret',
+    cookiePassword: cookieSecret ?? 'sessionsecret',
   });
 
   app.use(adminJS.options.rootPath, adminRouter);
@@ -120,9 +144,7 @@ const start = async () => {
   });
 
   app.listen(PORT, () => {
-    console.log(`AdminJS 啟動成功: http://localhost:${PORT}${adminJS.options.rootPath}`);
-    console.log(`登入帳號: admin@example.com`);
-    console.log(`登入密碼: password`);
+    console.log(`AdminJS server is running at: http://localhost:${PORT}${adminJS.options.rootPath}`);
   });
 };
 

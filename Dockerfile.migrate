@@ -1,0 +1,27 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# 安裝 OpenSSL
+RUN apk add --no-cache openssl
+
+# 啟用 Corepack 以使用 Yarn
+RUN corepack enable
+
+# 複製 package 檔案
+COPY package*.json ./
+COPY yarn.lock ./
+
+# 安裝依賴
+RUN yarn install --frozen-lockfile
+
+# 複製原始碼
+COPY . .
+
+# 生成 Prisma client
+RUN npx prisma generate
+
+# 執行遷移
+CMD ["sh", "-c", "npx prisma migrate deploy && echo 'Database migration completed'"]
+
+

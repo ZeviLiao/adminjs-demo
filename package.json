@@ -5,7 +5,16 @@
   "scripts": {
     "build": "tsc",
     "lint": "eslint \"src\"",
-    "start": "dotenv -c '.env' -- node dist/app"
+    "start": "dotenv -c '.env' -- node dist/app",
+    "start:prod": "node dist/app",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "docker:build": "docker build -t $npm_package_name:local -f Dockerfile .",
+    "docker:tag": "node -e \"console.log('No-op. Use docker:release instead.')\"",
+    "docker:release": "bash ./docker-release.sh ${npm_package_version:-latest} ${DOCKER_REPO:-zevi/adminjs-demo}"
   },
   "dependencies": {
     "@adminjs/express": "^6.1.1",

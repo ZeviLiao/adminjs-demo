@@ -1,135 +1,152 @@
 # AdminJS Demo
 
-一個使用 AdminJS + Prisma + MySQL 的管理後台範例專案。
-
-## Tech Stack
-
-- **Backend Framework**: Express.js
-- **Admin Panel**: AdminJS
-- **Database ORM**: Prisma
-- **Database**: MySQL
-- **Language**: TypeScript
-- **Package Manager**: Yarn
+一個基於 AdminJS v7 和 Prisma 的管理後台應用程式。
 
 ## 功能特色
 
-- 📊 自動生成的管理界面
-- 🔐 簡單的身份驗證
-- 🗄️ 完整的 CRUD 操作
-- 🌐 中文本地化界面
-- 🔗 關聯數據管理
+- ✅ AdminJS v7 管理介面
+- ✅ Prisma ORM 整合
+- ✅ MySQL 資料庫支援
+- ✅ Docker 容器化部署
+- ✅ 自動資料庫遷移
+- ✅ 中文化介面
 
-## 數據模型
+## 快速開始
 
-- **User**: 用戶管理（角色：一般用戶/管理員/版主）
+### 本地開發
+
+```bash
+# 安裝依賴
+yarn install
+
+# 設置環境變數
+cp .env.example .env
+
+# 生成 Prisma client
+yarn db:generate
+
+# 推送資料庫結構
+yarn db:push
+
+# 啟動開發伺服器
+yarn start
+```
+
+### Docker 部署
+
+```bash
+# 準備環境變數（請編輯 .env.docker，設定 ADMIN_EMAIL/ADMIN_PASSWORD/COOKIE_SECRET）
+vi .env.docker
+
+# 使用部署腳本（推薦）
+./deploy.sh
+
+# 或手動部署
+docker compose up --build -d
+```
+
+## 服務架構
+
+### Docker Compose 服務
+
+1. **mysql**: MySQL 8.0 資料庫
+2. **db-migrate**: 資料庫遷移服務
+3. **adminjs-app**: AdminJS 應用程式
+
+### 啟動順序
+
+1. MySQL 啟動並等待健康檢查
+2. 資料庫遷移服務執行 Prisma 遷移
+3. AdminJS 應用程式啟動
+
+## 環境變數
+
+### 開發環境 (.env)
+
+```env
+DATABASE_URL=mysql://root:P@ssw0rd@localhost:3306/adminjs_db
+NODE_ENV=development
+PORT=3000
+```
+
+### 生產環境 (Docker)
+
+```env
+MYSQL_ROOT_PASSWORD=P@ssw0rd
+MYSQL_DATABASE=adminjs_db
+DATABASE_URL=mysql://root:${MYSQL_ROOT_PASSWORD}@mysql:3306/${MYSQL_DATABASE}
+NODE_ENV=production
+PORT=3000
+COOKIE_SECRET=change_this_secret
+```
+
+## 資料庫模型
+
+- **User**: 用戶管理
 - **Post**: 文章管理
 - **Comment**: 評論管理
 - **Tag**: 標籤管理
 - **Category**: 分類管理
 
-## 快速開始
+## 管理介面
 
-### 1. 安裝依賴
+- **URL**: http://localhost:3000/admin
+- **帳號**: admin@example.com
+- **密碼**: password
 
-```bash
-yarn install
-```
-
-### 2. 環境配置
-
-複製環境變數範例文件：
+## 常用指令
 
 ```bash
-cp .env.example .env
+# 開發
+yarn start              # 啟動開發伺服器
+yarn build              # 建置專案
+yarn lint               # 程式碼檢查
+
+# 資料庫
+yarn db:generate        # 生成 Prisma client
+yarn db:push            # 推送資料庫結構
+yarn db:migrate         # 開發環境遷移
+yarn db:deploy          # 生產環境遷移
+yarn db:studio          # 開啟 Prisma Studio
+
+# Docker
+docker-compose up -d    # 啟動所有服務
+docker-compose down     # 停止所有服務
+docker-compose logs     # 查看日誌
+./deploy.sh            # 一鍵部署
 ```
 
-編輯 `.env` 文件，設置你的資料庫連接字串：
+## 故障排除
 
-```env
-DATABASE_URL="mysql://username:password@localhost:3306/database_name"
-```
+### 常見問題
 
-### 3. 數據庫設置
+1. **端口被占用**
+   ```bash
+   lsof -ti:3000 | xargs kill -9
+   ```
 
-初始化數據庫和生成 Prisma Client：
+2. **資料庫連接失敗**
+   ```bash
+   docker-compose logs mysql
+   ```
+
+3. **遷移失敗**
+   ```bash
+   docker-compose logs db-migrate
+   ```
+
+### 重新部署
 
 ```bash
-# 執行數據庫遷移
-npx prisma migrate dev
-
-# 生成 Prisma Client
-npx prisma generate
+# 完全重新部署
+docker-compose down -v
+docker-compose up --build -d
 ```
 
-### 4. 編譯專案
+## 技術棧
 
-```bash
-yarn build
-```
-
-### 5. 啟動服務
-
-```bash
-yarn start
-```
-
-## 訪問管理後台
-
-開啟瀏覽器前往：http://localhost:3000/admin
-
-**登入資訊：**
-- 帳號：`admin@example.com`
-- 密碼：`password`
-
-## 可用指令
-
-| 指令 | 說明 |
-|------|------|
-| `yarn install` | 安裝依賴套件 |
-| `yarn build` | 編譯 TypeScript |
-| `yarn start` | 啟動生產服務器 |
-| `yarn lint` | 執行程式碼檢查 |
-| `npx prisma studio` | 開啟 Prisma Studio |
-| `npx prisma migrate dev` | 執行資料庫遷移 |
-| `npx prisma generate` | 生成 Prisma Client |
-
-## 專案結構
-
-```
-├── src/
-│   └── app.ts          # 主要應用程式檔案
-├── prisma/
-│   └── schema.prisma   # 數據庫 Schema
-├── dist/               # 編譯後的 JavaScript 檔案
-├── package.json        # 專案配置
-├── tsconfig.json       # TypeScript 配置
-└── .env                # 環境變數（需自行創建）
-```
-
-## 開發說明
-
-### 新增功能
-
-參考 [createNewFunc.md](./createNewFunc.md) 了解如何添加新的 CRUD 功能。
-
-### 自定義管理界面
-
-AdminJS 提供豐富的配置選項來自定義管理界面：
-
-- 欄位顯示/隱藏
-- 欄位類型設定
-- 操作權限控制
-- 自定義組件
-
-更多詳細資訊請參考 [AdminJS 官方文檔](https://docs.adminjs.co/)。
-
-## 注意事項
-
-⚠️ **安全提醒**：
-- 本範例使用硬編碼的身份驗證，生產環境請使用更安全的認證方式
-- 確保 `.env` 文件不要提交到版本控制系統
-- 定期更新依賴套件以修復安全漏洞
-
-## 授權
-
-此專案僅供學習和開發參考使用。
+- **後端**: Node.js, Express, AdminJS v7
+- **資料庫**: MySQL 8.0, Prisma ORM
+- **容器化**: Docker, Docker Compose
+- **語言**: TypeScript
+- **套件管理**: Yarn

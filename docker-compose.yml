@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # MySQL 資料庫
+  mysql:
+    image: mysql:8.0
+    container_name: adminjs_mysql
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    command: ["sh", "-c", "exec mysqld --character-set-server=$$MYSQL_CHARACTER_SET_SERVER --collation-server=$$MYSQL_COLLATION_SERVER"]
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d
+    networks:
+      - adminjs_network
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # 資料庫遷移服務
+  db-migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.migrate
+    container_name: adminjs_migrate
+    restart: "no"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    env_file:
+      - .env.docker
+    networks:
+      - adminjs_network
+
+  # AdminJS 應用程式
+  adminjs-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: adminjs_app
+    restart: unless-stopped
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+    env_file:
+      - .env.docker
+    ports:
+      - "3000:3000"
+    networks:
+      adminjs_network:
+      jeinn-network:
+        aliases:
+          - adminjs
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/admin"]
+      timeout: 10s
+      retries: 5
+
+volumes:
+  mysql_data:
+
+networks:
+  adminjs_network:
+    driver: bridge
+  jeinn-network:
+    external: true
+    name: jeinn-network
